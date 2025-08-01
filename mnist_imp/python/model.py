@@ -1,4 +1,5 @@
 from exceptions import ShapeMismatchError
+import numpy as np
 
 class LinearLayer:
     def __init__(self, d_inp, d_out):
@@ -68,7 +69,7 @@ class MLP:
     def __call__(self, X, activation, final_activation=None):
         return self.forward(X, activation, final_activation)
 
-    def backward(self, train_loss, probs, one_hot_encoded, epoch, batch_num, total_batches, batch_input):
+    def backward(self, train_loss, probs, one_hot_encoded, epoch, batch_num, total_batches, batch_input, beta1, beta2, alpha, eps):
         original_weights = [layer.weights.copy() for layer in self.layer_list]
         for index, layer in enumerate(reversed(self.layer_list)):
 
