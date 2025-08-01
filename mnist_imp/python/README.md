@@ -1,5 +1,5 @@
-Example output:
-Saving best model...
+###Example output:
+```Saving best model...
 Epoch  1: Train Loss = 0.2604, Train Accuracy = 92.39%
 Epoch  1: Validation Loss = 0.1300, Validation Accuracy = 96.17%
 Saving best model...
@@ -202,4 +202,4 @@ Epoch 99: Train Loss = 0.0038, Train Accuracy = 99.90%
 Epoch 99: Validation Loss = 0.2255, Validation Accuracy = 98.07%
 Epoch 100: Train Loss = 0.0062, Train Accuracy = 99.88%
 Epoch 100: Validation Loss = 0.2303, Validation Accuracy = 98.02%
-Final Test Accuracy: 97.80%
+Final Test Accuracy: 97.80%```
