@@ -1,3 +1,25 @@
+# Ignore everything in mnist_imp/python/
+mnist_imp/python/*
+!mnist_imp/python/dataset.py
+!mnist_imp/python/model.py
+!mnist_imp/python/exceptions.py
+
+# Ignore raw dataset files
+mnist_imp/dataset/
+
+# Ignore everything in AlexNet
+AlexNet/
+
+# Ignore already committed pkl/png files (if any got committed accidentally)
+*.pkl
+*.png
+
+# Standard ignores
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+.DS_Store
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
