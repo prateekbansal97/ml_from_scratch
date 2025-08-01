@@ -15,10 +15,15 @@ def load_mnist_images_labels(image_path, label_path):
 
 
 
-class dataset:
-    def __init__(self, features, labels):
+class Dataset:
+    def __init__(self, features, labels, scale_feat=True, scale_label=False):
         self.features = features
         self.labels = labels
+        if scale_feat:
+            self.features = self.features.astype(np.float32) / np.max(self.features)
+            #self.features /= np.max(self.features)
+        if scale_label:
+            self.labels /= np.max(self.labels)
         assert self.features.shape[0] == len(labels)
 
     def __len__(self):
@@ -53,5 +58,5 @@ class DataLoader:
 
     def __iter__(self):
         np.random.shuffle(self.indices)
-        for i in range(self.num_batches):
+        for i in range(self.n_batches):
             yield self.get_batch(i)
