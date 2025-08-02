@@ -3,6 +3,7 @@
 //
 
 #include "include/dataset.h"
+#include <Eigen/Dense>
 #include <fstream>
 #include <stdexcept>
 #include <cstdint>
@@ -51,3 +52,13 @@ std::pair<std::vector<Eigen::ArrayXXf>, std::vector<uint8_t>> load_mnist_images_
     return {images, labels};
 }
 
+Dataset::Dataset(std::vector<Eigen::ArrayXXf>& features, std::vector<uint8_t> &labels, bool scale_feat) :
+features(std::move(features)), labels(std::move(labels)), scale_feat(scale_feat)
+{
+    if (scale_feat) {
+        for (auto& img : this->features)
+        {
+            img /= 255.0;
+        }
+    }
+}
