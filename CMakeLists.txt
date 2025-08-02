@@ -6,6 +6,8 @@ set(CMAKE_CXX_STANDARD 17)
 add_executable(mnist
         mnist_imp/cpp/src/main.cpp
         mnist_imp/cpp/src/dataset.cpp
+        mnist_imp/cpp/src/activation.cpp
+        mnist_imp/cpp/include/activation.h
 )
 
 target_include_directories(mnist PRIVATE
