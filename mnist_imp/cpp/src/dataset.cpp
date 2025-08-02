@@ -8,6 +8,9 @@
 #include <stdexcept>
 #include <cstdint>
 #include <iostream>
+#include <numeric>
+#include <algorithm> // For std::shuffle
+#include <random>
 
 std::pair<std::vector<Eigen::ArrayXXf>, std::vector<uint8_t>> load_mnist_images_labels(const std::string& image_path, const std::string& label_path) {
     std::ifstream label_file(label_path, std::ios::binary);
@@ -43,7 +46,7 @@ std::pair<std::vector<Eigen::ArrayXXf>, std::vector<uint8_t>> load_mnist_images_
             for (uint32_t c = 0; c < cols; ++c) {
                 uint8_t pixel;
                 image_file.read(reinterpret_cast<char*>(&pixel), 1);
-                img(r, c) = static_cast<float>(pixel) / 255.0f;
+                img(r, c) = static_cast<float>(pixel);
             }
         }
         images.push_back(img);
@@ -74,25 +77,71 @@ int Dataset::get_length() {
     return static_cast<int>(this->features.size());
 }
 
-std::pair<std::vector<Eigen::ArrayXXf>, std::vector<Eigen::ArrayXXf>> train_test_split_features(std::pair<std::vector<Eigen::ArrayXXf>, std::vector<uint8_t>>& input_data, float test_size)
+DataLoader::DataLoader(Dataset &dataset, int batch_size) : dataset(dataset), batch_size(batch_size)
 {
-    std::vector<Eigen::ArrayXXf>& features = input_data.first;
-    std::pair<std::vector<Eigen::ArrayXXf>, std::vector<Eigen::ArrayXXf>> train_test_features;
+    if (typeid(dataset) != typeid(Dataset))
+    {
+        throw std::invalid_argument("dataset should be of class Dataset");
+    }
 
-    int final_train_index = static_cast<int>((1 - test_size)*features.size());
-    train_test_features.first.assign(features.begin(), features.begin() + final_train_index);
-    train_test_features.second.assign(features.begin() + final_train_index, features.end());
-    return train_test_features;
+    indices = std::vector<int>(dataset.get_length());
+    std::iota(indices.begin(), indices.end(), 0);
+
+    std::random_device rd; // Obtain a random number from the OS
+    std::mt19937 g(rd());
+    std::shuffle(indices.begin(), indices.end(), g);
+
+    n_batches = static_cast<int>((std::ceil((this->dataset.get_length()) / this->batch_size)));
 }
 
-std::pair<std::vector<uint8_t>, std::vector<uint8_t>> train_test_split_labels(std::pair<std::vector<Eigen::ArrayXXf>, std::vector<uint8_t>>& input_data, float test_size)
-{
-    std::vector<uint8_t>& labels = input_data.second;
-    std::pair<std::vector<uint8_t>, std::vector<uint8_t>> train_test_labels;
-
-    int final_train_index = static_cast<int>((1 - test_size)*labels.size());
-    train_test_labels.first.assign(labels.begin(), labels.begin() + final_train_index);
-    train_test_labels.second.assign(labels.begin() + final_train_index, labels.end());
-    return train_test_labels;
-
+int DataLoader::get_length() const {
+    return this->n_batches;
 }
+
+void DataLoader::shuffle() {
+    std::random_device rd; // Obtain a random number from the OS
+    std::mt19937 g(rd());
+    std::shuffle(this->indices.begin(), this->indices.end(), g);
+}
+
+
+std::pair<std::vector<Eigen::ArrayXXf>, std::vector<uint8_t>> DataLoader::get_batch(int index)
+{
+    int findex = index*this->batch_size;
+    int lindex = std::min(findex + batch_size, this->dataset.get_length());
+    int local_batch_size = lindex - findex;
+
+    std::vector<Eigen::ArrayXXf> feature_batch;
+    feature_batch.assign(this->dataset.features.begin() + findex, this->dataset.features.begin() + lindex);
+
+    std::vector<uint8_t> label_batch;
+    label_batch.assign(this->dataset.labels.begin() + findex, this-> dataset.labels.begin() + lindex);
+
+    std::pair<std::vector<Eigen::ArrayXXf>, std::vector<uint8_t>> batch = {feature_batch, label_batch};
+    return batch;
+}
+
+
+
+//std::pair<std::vector<Eigen::ArrayXXf>, std::vector<Eigen::ArrayXXf>> train_test_split_features(std::pair<std::vector<Eigen::ArrayXXf>, std::vector<uint8_t>>& input_data, float test_size)
+//{
+//    std::vector<Eigen::ArrayXXf>& features = input_data.first;
+//    std::pair<std::vector<Eigen::ArrayXXf>, std::vector<Eigen::ArrayXXf>> train_test_features;
+//
+//    int final_train_index = static_cast<int>((1 - test_size)*features.size());
+//    train_test_features.first.assign(features.begin(), features.begin() + final_train_index);
+//    train_test_features.second.assign(features.begin() + final_train_index, features.end());
+//    return train_test_features;
+//}
+//
+//std::pair<std::vector<uint8_t>, std::vector<uint8_t>> train_test_split_labels(std::pair<std::vector<Eigen::ArrayXXf>, std::vector<uint8_t>>& input_data, float test_size)
+//{
+//    std::vector<uint8_t>& labels = input_data.second;
+//    std::pair<std::vector<uint8_t>, std::vector<uint8_t>> train_test_labels;
+//
+//    int final_train_index = static_cast<int>((1 - test_size)*labels.size());
+//    train_test_labels.first.assign(labels.begin(), labels.begin() + final_train_index);
+//    train_test_labels.second.assign(labels.begin() + final_train_index, labels.end());
+//    return train_test_labels;
+//
+//}
