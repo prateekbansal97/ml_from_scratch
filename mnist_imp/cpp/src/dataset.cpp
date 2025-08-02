@@ -2,7 +2,7 @@
 // Created by Prateek Bansal on 8/1/25.
 //
 
-#include "include/dataset.h"
+#include "dataset.h"
 #include <Eigen/Dense>
 #include <fstream>
 #include <stdexcept>
@@ -61,4 +61,38 @@ features(std::move(features)), labels(std::move(labels)), scale_feat(scale_feat)
             img /= 255.0;
         }
     }
+}
+
+std::pair<Eigen::ArrayXXf, uint8_t> Dataset::get_element(int index) {
+    std::pair<Eigen::ArrayXXf, uint8_t> element;
+    element.first = this->features[index];
+    element.second = this->labels[index];
+    return element;
+}
+
+int Dataset::get_length() {
+    return static_cast<int>(this->features.size());
+}
+
+std::pair<std::vector<Eigen::ArrayXXf>, std::vector<Eigen::ArrayXXf>> train_test_split_features(std::pair<std::vector<Eigen::ArrayXXf>, std::vector<uint8_t>>& input_data, float test_size)
+{
+    std::vector<Eigen::ArrayXXf>& features = input_data.first;
+    std::pair<std::vector<Eigen::ArrayXXf>, std::vector<Eigen::ArrayXXf>> train_test_features;
+
+    int final_train_index = static_cast<int>((1 - test_size)*features.size());
+    train_test_features.first.assign(features.begin(), features.begin() + final_train_index);
+    train_test_features.second.assign(features.begin() + final_train_index, features.end());
+    return train_test_features;
+}
+
+std::pair<std::vector<uint8_t>, std::vector<uint8_t>> train_test_split_labels(std::pair<std::vector<Eigen::ArrayXXf>, std::vector<uint8_t>>& input_data, float test_size)
+{
+    std::vector<uint8_t>& labels = input_data.second;
+    std::pair<std::vector<uint8_t>, std::vector<uint8_t>> train_test_labels;
+
+    int final_train_index = static_cast<int>((1 - test_size)*labels.size());
+    train_test_labels.first.assign(labels.begin(), labels.begin() + final_train_index);
+    train_test_labels.second.assign(labels.begin() + final_train_index, labels.end());
+    return train_test_labels;
+
 }
