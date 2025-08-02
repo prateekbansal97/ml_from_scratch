@@ -8,6 +8,8 @@ add_executable(mnist
         mnist_imp/cpp/src/dataset.cpp
         mnist_imp/cpp/src/activation.cpp
         mnist_imp/cpp/include/activation.h
+        mnist_imp/cpp/include/model.h
+        mnist_imp/cpp/src/model.cpp
 )
 
 target_include_directories(mnist PRIVATE

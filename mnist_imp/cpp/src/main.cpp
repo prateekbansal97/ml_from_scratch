@@ -11,6 +11,8 @@ int main()
     Dataset train_dataset = Dataset(train_features, train_labels);
     Dataset valid_dataset = Dataset(valid_features, valid_labels);
 
+    DataLoader train_loader = DataLoader(train_dataset, 32);
+    DataLoader valid_loader = DataLoader(valid_dataset, 32);
 //    std::cout << train_dataset.get_length() << std::endl;
     return 0;
 }
