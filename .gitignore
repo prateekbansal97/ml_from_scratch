@@ -1,4 +1,8 @@
 # Ignore everything in mnist_imp/python/
+
+
+
+
 prettyprint.bash
 mnist_imp/python/*
 mnist_imp/dataset
@@ -233,3 +237,6 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+.idea/inspectionProfiles/
+cmake-build-debug/
