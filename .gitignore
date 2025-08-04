@@ -1,4 +1,5 @@
 # Ignore everything in mnist_imp/python/
+prettyprint.bash
 mnist_imp/python/*
 mnist_imp/dataset
 mnist_imp/dataset/*

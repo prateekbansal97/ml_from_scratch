@@ -34,6 +34,7 @@ public:
     std::pair<std::vector<Eigen::ArrayXXf>, std::vector<uint8_t>> get_batch(int index);
     void shuffle();
 
+
     class Iterator {
     public:
         Iterator(DataLoader* loader, int pos) : loader(loader), pos(pos) {}
@@ -64,12 +65,12 @@ public:
     Iterator end() {
         return Iterator(this, n_batches);
     }
+    int n_batches;
 
 private:
     Dataset& dataset;
     int batch_size;
     std::vector<int> indices;
-    int n_batches;
 };
 /*train_images, val_images, train_labels, val_labels = train_test_split(train_images, train_labels, test_size=0.1, random_state=42)*/
 
@@ -96,5 +97,7 @@ std::pair<std::vector<T>, std::vector<T>> train_test_split(std::pair<std::vector
     return train_test_split_data;
 
 }
+
+Eigen::ArrayXXf flatten_and_stack(const std::vector<Eigen::ArrayXXf>& images);
 
 #endif //ML_FROM_SCRATCH_DATASET_H

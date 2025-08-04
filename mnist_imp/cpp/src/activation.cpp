@@ -3,7 +3,7 @@
 //
 #include "Eigen/Dense"
 
-Eigen::ArrayXXf ReLu(Eigen::ArrayXXf& input)
+Eigen::ArrayXXf ReLu(const Eigen::ArrayXXf& input)
 {
     return input.max(0.0f);
 }

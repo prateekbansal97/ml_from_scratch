@@ -7,6 +7,6 @@
 
 #include "Eigen/Dense"
 
-Eigen::ArrayXXf ReLu(Eigen::ArrayXXf& input);
+Eigen::ArrayXXf ReLu(const Eigen::ArrayXXf& input);
 Eigen::ArrayXXf softmax(const Eigen::ArrayXXf& X, bool clip = true);
 #endif //ML_FROM_SCRATCH_ACTIVATION_H

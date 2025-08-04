@@ -121,27 +121,27 @@ std::pair<std::vector<Eigen::ArrayXXf>, std::vector<uint8_t>> DataLoader::get_ba
     return batch;
 }
 
+Eigen::ArrayXXf flatten_and_stack(const std::vector<Eigen::ArrayXXf> &images) {
+    int n_samples = static_cast<int>(images.size());
+    int flattened_size = static_cast<int>(images[0].size());  // 28*28 = 784
 
+    Eigen::ArrayXXf stacked(n_samples, flattened_size);
 
-//std::pair<std::vector<Eigen::ArrayXXf>, std::vector<Eigen::ArrayXXf>> train_test_split_features(std::pair<std::vector<Eigen::ArrayXXf>, std::vector<uint8_t>>& input_data, float test_size)
-//{
-//    std::vector<Eigen::ArrayXXf>& features = input_data.first;
-//    std::pair<std::vector<Eigen::ArrayXXf>, std::vector<Eigen::ArrayXXf>> train_test_features;
-//
-//    int final_train_index = static_cast<int>((1 - test_size)*features.size());
-//    train_test_features.first.assign(features.begin(), features.begin() + final_train_index);
-//    train_test_features.second.assign(features.begin() + final_train_index, features.end());
-//    return train_test_features;
-//}
-//
-//std::pair<std::vector<uint8_t>, std::vector<uint8_t>> train_test_split_labels(std::pair<std::vector<Eigen::ArrayXXf>, std::vector<uint8_t>>& input_data, float test_size)
-//{
-//    std::vector<uint8_t>& labels = input_data.second;
-//    std::pair<std::vector<uint8_t>, std::vector<uint8_t>> train_test_labels;
-//
-//    int final_train_index = static_cast<int>((1 - test_size)*labels.size());
-//    train_test_labels.first.assign(labels.begin(), labels.begin() + final_train_index);
-//    train_test_labels.second.assign(labels.begin() + final_train_index, labels.end());
-//    return train_test_labels;
-//
-//}
+    for (int i = 0; i < n_samples; ++i) {
+
+        if (images[i].size() != flattened_size) {
+            std::cerr << "Image " << i << " has inconsistent size: "
+                      << images[i].rows() << "x" << images[i].cols()
+                      << " (expected flat size " << flattened_size << ")" << std::endl;
+            std::exit(1);
+        }
+
+        if (images[i].data() == nullptr) {
+            std::cerr << "Image " << i << " has null data pointer!" << std::endl;
+            std::exit(1);
+        }
+// Flatten 2D image into row vector
+        stacked.row(i) = Eigen::Map<const Eigen::RowVectorXf>(images[i].data(), flattened_size);
+    }
+    return stacked;
+}
