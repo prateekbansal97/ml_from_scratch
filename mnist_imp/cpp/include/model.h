@@ -6,6 +6,7 @@
 #define ML_FROM_SCRATCH_MODEL_H
 
 #include "Eigen/Dense"
+#include <memory>
 
 class LinearLayer
 {

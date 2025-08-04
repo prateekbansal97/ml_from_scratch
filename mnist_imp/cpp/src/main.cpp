@@ -1,5 +1,5 @@
 
-
+#include <memory>
 #include <Eigen/Dense>
 #include <iostream>
 #include <limits>
@@ -15,7 +15,7 @@
 
 int main()
 {
-    std::pair<std::vector<Eigen::ArrayXXf>, std::vector<uint8_t>> input_data = load_mnist_images_labels("/Users/prateek/CLionProjects/ml_from_scratch/mnist_imp/dataset/raw/train-images-idx3-ubyte", "/Users/prateek/CLionProjects/ml_from_scratch/mnist_imp/dataset/raw/train-labels-idx1-ubyte");
+    std::pair<std::vector<Eigen::ArrayXXf>, std::vector<uint8_t>> input_data = load_mnist_images_labels("../mnist_imp/dataset/raw/train-images-idx3-ubyte", "../mnist_imp/dataset/raw/train-labels-idx1-ubyte");
     auto [train_features, valid_features] = train_test_split<Eigen::ArrayXXf>(input_data, 0.1f, false);
     auto [train_labels, valid_labels] = train_test_split<uint8_t>(input_data, 0.1f, true);
     Dataset train_dataset = Dataset(train_features, train_labels);
@@ -66,11 +66,11 @@ int main()
         {
             auto& images = batch.first;
             auto& labels = batch.second;
-            auto start = std::chrono::high_resolution_clock::now();
+            //auto start = std::chrono::high_resolution_clock::now();
             Eigen::ArrayXXf images_f = flatten_and_stack(images);
-            auto end = std::chrono::high_resolution_clock::now();
-            std::chrono::duration<double> elapsed = end - start;
-            std::cout << "Time elapsed for train flattening: " << elapsed.count() << " seconds" << std::endl;
+            //auto end = std::chrono::high_resolution_clock::now();
+            //std::chrono::duration<double> elapsed = end - start;
+            //std::cout << "Time elapsed for train flattening: " << elapsed.count() << " seconds" << std::endl;
 
             Eigen::ArrayXXf probs_train = model.forward(images_f, ReLu, [](const Eigen::ArrayXXf& x) { return softmax(x, true); });
 
@@ -125,11 +125,11 @@ int main()
         {
             auto& images_valid = batch_valid.first;
             auto& labels_valid = batch_valid.second;
-            auto start = std::chrono::high_resolution_clock::now();
+            //auto start = std::chrono::high_resolution_clock::now();
             Eigen::ArrayXXf images_valid_f = flatten_and_stack(images_valid);
-            auto end = std::chrono::high_resolution_clock::now();
-            std::chrono::duration<double> elapsed = end - start;
-            std::cout << "Time elapsed for valid flatten: " << elapsed.count() << " seconds" << std::endl;
+            //auto end = std::chrono::high_resolution_clock::now();
+            //std::chrono::duration<double> elapsed = end - start;
+            //std::cout << "Time elapsed for valid flatten: " << elapsed.count() << " seconds" << std::endl;
 
             Eigen::ArrayXXf probs_valid = model.forward(images_valid_f, ReLu, [](const Eigen::ArrayXXf& x) { return softmax(x, true); });
             int current_batch_size = images_valid_f.rows();
