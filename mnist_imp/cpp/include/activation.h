@@ -8,5 +8,5 @@
 #include "Eigen/Dense"
 
 Eigen::ArrayXXf ReLu(const Eigen::ArrayXXf& input);
-Eigen::ArrayXXf softmax(const Eigen::ArrayXXf& X, bool clip = true);
+Eigen::ArrayXXf softmax(const Eigen::ArrayXXf& X, bool clip = true); /* softmax with gradient clipping */
 #endif //ML_FROM_SCRATCH_ACTIVATION_H

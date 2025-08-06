@@ -13,13 +13,21 @@
 #include <random>
 
 std::pair<Eigen::ArrayXXf, Eigen::ArrayXi> load_mnist_images_labels(const std::string& image_path, const std::string& label_path) {
+    
+    /* Returns a tuple of features, labels
+     * features: 2D array of shape (dataset_size, 784)
+     * labels: 1D array of shape (dataset_size)
+     */
+    
     std::ifstream label_file(label_path, std::ios::binary);
     if (!label_file) throw std::runtime_error("Failed to open label file");
 
     uint32_t magic, num_labels;
-    label_file.read(reinterpret_cast<char*>(&magic), 4);
-    label_file.read(reinterpret_cast<char*>(&num_labels), 4);
-    magic = __builtin_bswap32(magic);
+    label_file.read(reinterpret_cast<char*>(&magic), 4); //2049 for MNIST
+    label_file.read(reinterpret_cast<char*>(&num_labels), 4); //60000 
+
+    // Convert to little endian
+    magic = __builtin_bswap32(magic); 
     num_labels = __builtin_bswap32(num_labels);
 
     Eigen::ArrayXi labels(num_labels);
@@ -33,22 +41,23 @@ std::pair<Eigen::ArrayXXf, Eigen::ArrayXi> load_mnist_images_labels(const std::s
     if (!image_file) throw std::runtime_error("Failed to open image file");
 
     uint32_t num_images, rows, cols;
-    image_file.read(reinterpret_cast<char*>(&magic), 4);
-    image_file.read(reinterpret_cast<char*>(&num_images), 4);
-    image_file.read(reinterpret_cast<char*>(&rows), 4);
-    image_file.read(reinterpret_cast<char*>(&cols), 4);
+    image_file.read(reinterpret_cast<char*>(&magic), 4); //2051
+    image_file.read(reinterpret_cast<char*>(&num_images), 4); //60000
+    image_file.read(reinterpret_cast<char*>(&rows), 4); //28
+    image_file.read(reinterpret_cast<char*>(&cols), 4); //28
+    
+    // Convert to little endian
     num_images = __builtin_bswap32(num_images);
     rows = __builtin_bswap32(rows);
     cols = __builtin_bswap32(cols);
 
-    Eigen::ArrayXXf images(num_images, rows * cols);
-    //images.reserve(num_images);
+    Eigen::ArrayXXf images(num_images, rows * cols); // (60000, 784)
 
     for (uint32_t i = 0; i < num_images; ++i) {
         for (uint32_t p = 0; p < rows * cols; ++p) {
             uint8_t pixel;
             image_file.read(reinterpret_cast<char*>(&pixel), 1);
-            images(i, p) = static_cast<float>(pixel); // optional: /255.0f to normalize
+            images(i, p) = static_cast<float>(pixel); 
         }
     }
 
@@ -59,7 +68,7 @@ Dataset::Dataset(Eigen::ArrayXXf& features, Eigen::ArrayXi& labels, bool scale_f
 features(std::move(features)), labels(std::move(labels)), scale_feat(scale_feat)
 {
     if (scale_feat) {
-          this -> features /= 255.0;
+          this -> features /= 255.0; //Scaling
     }
 }
 
@@ -81,15 +90,14 @@ DataLoader::DataLoader(Dataset& dataset, int batch_size)
 
     int length = dataset.get_length();
 
-    // Allocate and initialize indices as Eigen::ArrayXi
+    // used to track and maintain training and validation dataset instances 
     indices = Eigen::ArrayXi::LinSpaced(length, 0, length - 1);
 
-    // Shuffle using Eigen and STL-compatible iterators
+    // Shuffle
     std::random_device rd;
     std::mt19937 g(rd());
     std::shuffle(indices.data(), indices.data() + indices.size(), g);
 
-    // Calculate number of batches correctly
     n_batches = (length + batch_size - 1) / batch_size;
 }
 
@@ -99,7 +107,8 @@ int DataLoader::get_length() const {
 }
 
 void DataLoader::shuffle() {
-    std::random_device rd; // Obtain a random number from the OS
+    /* For shuffling between epochs */
+    std::random_device rd; 
     std::mt19937 g(rd());
     std::shuffle(this->indices.begin(), this->indices.end(), g);
 }
@@ -107,17 +116,18 @@ void DataLoader::shuffle() {
 
 std::pair<Eigen::ArrayXXf, Eigen::ArrayXi> DataLoader::get_batch(int index)
 {
+    /* Returns a tuple of features, labels
+     * features: 2D array of shape (batch_size, 784)
+     * labels: 1D array of shape (batch_size)
+     * Implementation considers dataset_size not being an even multiple of the batch_size
+     */
+
     int findex = index*this->batch_size;
     int lindex = std::min(findex + batch_size, this->dataset.get_length());
     int local_batch_size = lindex - findex;
 
     Eigen::ArrayXXf feature_batch(local_batch_size, dataset.features.cols());
-
-    
-    //feature_batch.assign(this->dataset.features.begin() + findex, this->dataset.features.begin() + lindex);
-
     Eigen::ArrayXi label_batch(local_batch_size);
-    //label_batch.assign(this->dataset.labels.begin() + findex, this-> dataset.labels.begin() + lindex);
 
     for (int i = 0; i < local_batch_size; ++i) {
         int data_index = indices(findex + i);
@@ -132,6 +142,9 @@ std::pair<std::pair<Eigen::ArrayXXf, Eigen::ArrayXi>,
           std::pair<Eigen::ArrayXXf, Eigen::ArrayXi>>
 train_test_split(const Eigen::ArrayXXf& features, const Eigen::ArrayXi& labels, float test_size, unsigned int seed)
 {
+    
+    /* Returns a randomly shuffled train-test split for the dataset.*/
+
     if (features.rows() != labels.rows()) {
         throw std::invalid_argument("Number of feature rows and labels must match.");
     }

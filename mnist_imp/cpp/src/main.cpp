@@ -15,22 +15,30 @@
 
 int main()
 {
+    //Load Dataset
     auto [input_features, input_labels] = load_mnist_images_labels("../mnist_imp/dataset/raw/train-images-idx3-ubyte", "../mnist_imp/dataset/raw/train-labels-idx1-ubyte");
+    
+    // Train, Validation split
     auto [train_data, valid_data] = train_test_split(input_features, input_labels, 0.1f);
     auto [train_features, train_labels] = train_data; //train_test_split<uint8_t>(input_data, 0.1f, true);
     auto [valid_features, valid_labels] = valid_data;
+    
+    //Generate Dataset Instances
     Dataset train_dataset = Dataset(train_features, train_labels);
     Dataset valid_dataset = Dataset(valid_features, valid_labels);
 
+    //Generate DataLoader Instances
     DataLoader train_loader = DataLoader(train_dataset, 32);
     DataLoader valid_loader = DataLoader(valid_dataset, 32);
 
+    //MLP layers vector
     std::vector<std::shared_ptr<LinearLayer>> layers = {
             std::make_shared<LinearLayer>(28 * 28, 128),
             std::make_shared<LinearLayer>(128, 32),
             std::make_shared<LinearLayer>(32, 10)
     };
 
+    //Initializing MLP
     MLP model(layers);
     
     #ifdef DEBUG_TRAINING
@@ -39,24 +47,33 @@ int main()
     int num_epochs = 100;  
     #endif
 
+    // 10 digits
     int num_classes = 10;
 
+    // Adam optimizer parameters
     double alpha = 0.001;
     double beta1 = 0.9;
     double beta2 = 0.999;
     double eps = 1e-8;
 
+    // Tracking Loss
     std::vector<double> train_loss_history;
     std::vector<double> valid_loss_history;
 
+    // For tracking best model
     double best_val_loss = std::numeric_limits<double>::infinity();
 
+    // Main Training Loop
     for (int epoch = 0; epoch < num_epochs; epoch++) {
+        
         double val_loss = 0.0f, train_loss = 0.0f;
+        
+        // To calculate train and valid accuracies
         int correct_train = 0, correct_val = 0;
 
         std::vector<long int> indices(train_dataset.get_length());
         std::iota(indices.begin(), indices.end(), 0);
+        
         std::vector<long int> val_indices(valid_dataset.get_length());
         std::iota(val_indices.begin(), val_indices.end(), 0);
 
@@ -68,21 +85,22 @@ int main()
         std::shuffle(val_indices.begin(), val_indices.end(), g);
 
         int train_batch_num = 0, valid_batch_num = 0;
-        for (const auto& batch: train_loader)
+        
+        for (const auto& batch: train_loader) // Using custom iterator class for DataLoader
         {
+
             auto& images_f = batch.first;
             auto& labels = batch.second;
-            //auto start = std::chrono::high_resolution_clock::now();
-            //Eigen::ArrayXXf images_f = flatten_and_stack(images);
-            //auto end = std::chrono::high_resolution_clock::now();
-            //std::chrono::duration<double> elapsed = end - start;
-            //std::cout << "Time elapsed for train flattening: " << elapsed.count() << " seconds" << std::endl;
 
+            // forward pass
             Eigen::ArrayXXf probs_train = model.forward(images_f, ReLu, [](const Eigen::ArrayXXf& x) { return softmax(x, true); });
 
             int current_batch_size = images_f.rows();
 
+            
             Eigen::ArrayXi predictions(current_batch_size);
+            
+            // equivalent to np.argmax
             for (int i = 0; i < current_batch_size; ++i) {
                 int maxIdx;
                 probs_train.row(i).maxCoeff(&maxIdx);
@@ -98,11 +116,13 @@ int main()
                 // Safety: avoid log(0)
                 prob = std::max(prob, 1e-10f);
 
+                // Multi class Cross entropy
                 batch_loss += -std::log(prob);
             }
 
             train_loss += batch_loss / current_batch_size;
 
+            // BackPropogation
             Eigen::ArrayXXf one_hot_encoded = Eigen::ArrayXXf::Zero(current_batch_size, num_classes);
 
             for (int i = 0; i < current_batch_size; ++i) {
@@ -124,24 +144,23 @@ int main()
                     correct_train++;
                 }
             }
+
             train_batch_num++;
         }
 
+        // Validation
         for (const auto& batch_valid: valid_loader)
         {
             auto& images_valid_f = batch_valid.first;
             auto& labels_valid = batch_valid.second;
-            //auto start = std::chrono::high_resolution_clock::now();
-            //Eigen::ArrayXXf images_valid_f = flatten_and_stack(images_valid);
-            //auto end = std::chrono::high_resolution_clock::now();
-            //std::chrono::duration<double> elapsed = end - start;
-            //std::cout << "Time elapsed for valid flatten: " << elapsed.count() << " seconds" << std::endl;
 
+            // Forward Pass
             Eigen::ArrayXXf probs_valid = model.forward(images_valid_f, ReLu, [](const Eigen::ArrayXXf& x) { return softmax(x, true); });
             int current_batch_size = images_valid_f.rows();
 
             double batch_loss = 0.0;
 
+            // equivalent to np.argmax
             for (int i = 0; i < current_batch_size; ++i) {
                 uint8_t true_label = labels_valid[i];  // Ground truth
                 float prob = probs_valid(i, true_label);
@@ -197,6 +216,5 @@ int main()
 
     }
 
-//    std::cout << train_dataset.get_length() << std::endl;
     return 0;
 }

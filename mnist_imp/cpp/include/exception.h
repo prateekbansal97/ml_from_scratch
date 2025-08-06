@@ -12,7 +12,7 @@
 class ShapeMismatchError : public std::runtime_error {
 public:
     explicit ShapeMismatchError(const std::string& message);
-
+    /* Thrown when input to next layer has different shape than the output from the previous layer. */
 };
 
 #endif //ML_FROM_SCRATCH_EXCEPTION_H

@@ -10,23 +10,24 @@
 
 LinearLayer::LinearLayer(int d_inp, int d_out) : d_inp(d_inp), d_out(d_out)
 {
-    weights = Eigen::ArrayXXf::Random(d_inp, d_out) * std::sqrt(2.0f / d_inp);
+    weights = Eigen::ArrayXXf::Random(d_inp, d_out) * std::sqrt(2.0f / d_inp); // He initialization
     biases = Eigen::ArrayXf::Random(d_out);
+    
+    // Useful during backpropogation, tracks position of layer in the network
     first = false;
     intermediate = false;
     last = false;
     
+    // Adam Optimizer's momentum and velocities for updating model weights and biases
     mom_weights = Eigen::ArrayXXf::Zero(d_inp, d_out);
     mom_biases = Eigen::ArrayXf::Zero(d_out);
     
     vel_weights = Eigen::ArrayXXf::Zero(d_inp, d_out);
     vel_biases  = Eigen::ArrayXf::Zero(d_out);
-    
-//    output = nullptr;
-//    del_bias = nullptr;
 }
 
 Eigen::ArrayXXf LinearLayer::forward(Eigen::ArrayXXf &input) {
+    // Linear transformation, y  = Ax + b;
     Eigen::ArrayXXf output_layer = (input.matrix() * this->weights.matrix()).array().rowwise() + this->biases.transpose();
     return output_layer;
 }
@@ -34,6 +35,8 @@ Eigen::ArrayXXf LinearLayer::forward(Eigen::ArrayXXf &input) {
 MLP::MLP(std::vector<std::shared_ptr<LinearLayer>> layers) : layers(std::move(layers)) {
 
     int layernum = 0;
+
+    // Initializing layers passed as layers within the MLP
     for (const auto& layer : this->layers) {
         if (layernum == 0) layer->first = true;
         else if (layernum == static_cast<int>(this->layers.size() - 1)) layer->last = true;
@@ -43,6 +46,7 @@ MLP::MLP(std::vector<std::shared_ptr<LinearLayer>> layers) : layers(std::move(la
 
     n_layers = static_cast<int>(this->layers.size());
 
+    // Check if input of next layer has the shape as the output of the previous layer.
     for (int i = 0; i < n_layers - 1; i++) {
         const auto& layerprev = this->layers[i];
         const auto& layernext = this->layers[i+1];

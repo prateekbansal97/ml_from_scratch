@@ -14,11 +14,18 @@ std::pair<Eigen::ArrayXXf, Eigen::ArrayXi> load_mnist_images_labels(const std::s
 
 class Dataset {
     /*    def __init__(self, features, labels, scale_feat=True, scale_label=False):*/
+
+    /* inspired from the python implementation.
+     * features is a 2D array of flattened images of shape (train_size, 784)
+     * label is the actual label, which is the digit itself that the feature corresponds to
+     */
+
 public:
     Dataset(Eigen::ArrayXXf& features, Eigen::ArrayXi& labels, bool scale_feat = true);
 
     int get_length() const ;
-    std::pair<Eigen::ArrayXf, int> get_element(int index);
+    std::pair<Eigen::ArrayXf, int> get_element(int index); // returns a 1D image, label tuple pair
+
     Eigen::ArrayXXf features;
     Eigen::ArrayXi labels;
 
@@ -28,14 +35,24 @@ private:
 
 class DataLoader
 {
+
+    /* Inspired from the pytorch DataLoader Classes.
+     * Takes in a dataset of class Dataset, and provides utilities for batching and shuffling the data
+     * Custom iterator class for easy for-loop based iterations
+     */
+
 public:
     DataLoader(Dataset& dataset, int batch_size);
+    
     int get_length() const;
-    std::pair<Eigen::ArrayXXf, Eigen::ArrayXi> get_batch(int index);
-    void shuffle();
+    std::pair<Eigen::ArrayXXf, Eigen::ArrayXi> get_batch(int index); // returns a 2D batch of batch_size 1D images and labels as a tuple pair
+    
+    void shuffle(); // For shuffling the dataset between epochs
 
 
-    class Iterator {
+    class Iterator { 
+
+
     public:
         Iterator(DataLoader* loader, int pos) : loader(loader), pos(pos) {}
 
