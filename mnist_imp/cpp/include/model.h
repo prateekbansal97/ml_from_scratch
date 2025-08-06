@@ -45,7 +45,7 @@ private:
 class MLP {
 public:
     MLP(std::vector<std::shared_ptr<LinearLayer>> layers);
-    Eigen::ArrayXXf forward(Eigen::ArrayXXf& X,
+    Eigen::ArrayXXf forward(const Eigen::ArrayXXf& X,
                             const std::function<Eigen::ArrayXXf(const Eigen::ArrayXXf&)>& activation,
                             const std::function<Eigen::ArrayXXf(const Eigen::ArrayXXf&)>& final_activation);
     void backward(double train_loss, Eigen::ArrayXXf& probs, Eigen::ArrayXXf one_hot_encoded, int epoch,

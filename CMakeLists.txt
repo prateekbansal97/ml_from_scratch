@@ -7,6 +7,22 @@ set(CMAKE_CXX_STANDARD 17)
 
 find_package(Eigen3 REQUIRED)
 
+
+if(UNIX AND NOT APPLE)
+    # Linux-specific flags for profiling
+    message(STATUS "Detected Linux")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O0 -g -pg -fno-omit-frame-pointer")
+    set(CMAKE_BUILD_TYPE Debug)
+    #define EIGEN_RUNTIME_NO_MALLOC 0
+    #define EIGEN_USE_THREADS
+    #define EIGEN_VECTORIZE
+endif()
+
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    add_compile_definitions(DEBUG_TRAINING)
+endif()
+
+
 add_executable(mnist
         mnist_imp/cpp/src/main.cpp
         mnist_imp/cpp/src/dataset.cpp

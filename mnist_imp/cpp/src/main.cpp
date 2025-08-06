@@ -15,9 +15,10 @@
 
 int main()
 {
-    std::pair<std::vector<Eigen::ArrayXXf>, std::vector<uint8_t>> input_data = load_mnist_images_labels("../mnist_imp/dataset/raw/train-images-idx3-ubyte", "../mnist_imp/dataset/raw/train-labels-idx1-ubyte");
-    auto [train_features, valid_features] = train_test_split<Eigen::ArrayXXf>(input_data, 0.1f, false);
-    auto [train_labels, valid_labels] = train_test_split<uint8_t>(input_data, 0.1f, true);
+    auto [input_features, input_labels] = load_mnist_images_labels("../mnist_imp/dataset/raw/train-images-idx3-ubyte", "../mnist_imp/dataset/raw/train-labels-idx1-ubyte");
+    auto [train_data, valid_data] = train_test_split(input_features, input_labels, 0.1f);
+    auto [train_features, train_labels] = train_data; //train_test_split<uint8_t>(input_data, 0.1f, true);
+    auto [valid_features, valid_labels] = valid_data;
     Dataset train_dataset = Dataset(train_features, train_labels);
     Dataset valid_dataset = Dataset(valid_features, valid_labels);
 
@@ -31,8 +32,13 @@ int main()
     };
 
     MLP model(layers);
+    
+    #ifdef DEBUG_TRAINING
+    int num_epochs = 1;
+    #else
+    int num_epochs = 100;  
+    #endif
 
-    int num_epochs = 100;
     int num_classes = 10;
 
     double alpha = 0.001;
@@ -64,10 +70,10 @@ int main()
         int train_batch_num = 0, valid_batch_num = 0;
         for (const auto& batch: train_loader)
         {
-            auto& images = batch.first;
+            auto& images_f = batch.first;
             auto& labels = batch.second;
             //auto start = std::chrono::high_resolution_clock::now();
-            Eigen::ArrayXXf images_f = flatten_and_stack(images);
+            //Eigen::ArrayXXf images_f = flatten_and_stack(images);
             //auto end = std::chrono::high_resolution_clock::now();
             //std::chrono::duration<double> elapsed = end - start;
             //std::cout << "Time elapsed for train flattening: " << elapsed.count() << " seconds" << std::endl;
@@ -123,10 +129,10 @@ int main()
 
         for (const auto& batch_valid: valid_loader)
         {
-            auto& images_valid = batch_valid.first;
+            auto& images_valid_f = batch_valid.first;
             auto& labels_valid = batch_valid.second;
             //auto start = std::chrono::high_resolution_clock::now();
-            Eigen::ArrayXXf images_valid_f = flatten_and_stack(images_valid);
+            //Eigen::ArrayXXf images_valid_f = flatten_and_stack(images_valid);
             //auto end = std::chrono::high_resolution_clock::now();
             //std::chrono::duration<double> elapsed = end - start;
             //std::cout << "Time elapsed for valid flatten: " << elapsed.count() << " seconds" << std::endl;

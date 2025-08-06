@@ -56,7 +56,7 @@ MLP::MLP(std::vector<std::shared_ptr<LinearLayer>> layers) : layers(std::move(la
     parameters.emplace_back(&(last_layer->weights), &(last_layer->biases));
 }
 
-Eigen::ArrayXXf MLP::forward(Eigen::ArrayXXf& X,
+Eigen::ArrayXXf MLP::forward(const Eigen::ArrayXXf& X,
                         const std::function<Eigen::ArrayXXf(const Eigen::ArrayXXf&)>& activation,
                         const std::function<Eigen::ArrayXXf(const Eigen::ArrayXXf&)>& final_activation)
 {
