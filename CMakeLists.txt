@@ -40,6 +40,11 @@ add_executable(mnist
 )
 
 
+#find_package(OpenMP REQUIRED)
+#if(OpenMP_CXX_FOUND)
+#    target_link_libraries(mnist PRIVATE OpenMP::OpenMP_CXX)
+#endif()
+
 target_include_directories(mnist PRIVATE
         mnist_imp/cpp
         mnist_imp/cpp/include

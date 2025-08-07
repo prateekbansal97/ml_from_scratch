@@ -19,17 +19,23 @@ int main()
     auto [input_features, input_labels] = load_mnist_images_labels("../mnist_imp/dataset/raw/train-images-idx3-ubyte", "../mnist_imp/dataset/raw/train-labels-idx1-ubyte");
     
     // Train, Validation split
-    auto [train_data, valid_data] = train_test_split(input_features, input_labels, 0.1f);
-    auto [train_features, train_labels] = train_data; //train_test_split<uint8_t>(input_data, 0.1f, true);
+    auto [train_valid_data, test_data] = train_test_split(input_features, input_labels, 0.1f);
+    auto [train_valid_features, train_valid_labels] = train_valid_data; //train_test_split<uint8_t>(input_data, 0.1f, true);
+    auto [test_features, test_labels] = test_data;
+
+    auto [train_data, valid_data] = train_test_split(train_valid_features, train_valid_labels, 0.77f);
+    auto [train_features, train_labels] = train_data;
     auto [valid_features, valid_labels] = valid_data;
-    
+
     //Generate Dataset Instances
     Dataset train_dataset = Dataset(train_features, train_labels);
     Dataset valid_dataset = Dataset(valid_features, valid_labels);
+    Dataset test_dataset = Dataset(test_features, test_labels);
 
     //Generate DataLoader Instances
     DataLoader train_loader = DataLoader(train_dataset, 32);
     DataLoader valid_loader = DataLoader(valid_dataset, 32);
+    DataLoader test_loader = DataLoader(test_dataset, 32);
 
     //MLP layers vector
     std::vector<std::shared_ptr<LinearLayer>> layers = {
@@ -109,6 +115,7 @@ int main()
 
             double batch_loss = 0.0;
 
+//            #pragma omp parallel for reduction(+:batch_loss)
             for (int i = 0; i < current_batch_size; ++i) {
                 uint8_t true_label = labels[i];  // Ground truth
                 float prob = probs_train(i, true_label);
@@ -125,6 +132,7 @@ int main()
             // BackPropogation
             Eigen::ArrayXXf one_hot_encoded = Eigen::ArrayXXf::Zero(current_batch_size, num_classes);
 
+//            #pragma omp parallel for
             for (int i = 0; i < current_batch_size; ++i) {
                 int label = static_cast<int>(labels[i]);
 
@@ -139,6 +147,7 @@ int main()
             model.backward(train_loss, probs_train, one_hot_encoded, epoch,
                            train_batch_num, train_loader.n_batches, images_f, beta1, beta2, alpha, eps);
 
+            //            #pragma omp parallel for reduction(+:correct_train)
             for (int i = 0; i < current_batch_size; ++i) {
                 if (predictions(i) == static_cast<int>(labels[i])) {
                     correct_train++;
@@ -201,7 +210,7 @@ int main()
 
             std::cout << "Saving best model..." << std::endl;
 
-             model.save_parameters(best_parameters, "best_parameters_epoch_" + std::to_string(epoch)+".pkl");
+            model.save_parameters(best_parameters, "best_parameters_epoch_" + std::to_string(epoch)+".pkl");
         }
 
         std::cout << "Epoch " << std::setw(2) << (epoch + 1)
@@ -215,6 +224,37 @@ int main()
                   << (static_cast<float>(correct_val) / valid_dataset.get_length()) * 100 << "%" << std::endl;
 
     }
+
+    int correct_test = 0;
+    // Test loop
+    for (const auto& batch_test: test_loader)
+    {
+        auto& images_test_f = batch_test.first;
+        auto& labels_test = batch_test.second;
+
+        // Forward Pass
+        Eigen::ArrayXXf probs_test = model.forward(images_test_f, ReLu, [](const Eigen::ArrayXXf& x) { return softmax(x, true); });
+        int current_batch_size = images_test_f.rows();
+
+
+        Eigen::ArrayXi predictions_test(current_batch_size);
+        for (int i = 0; i < current_batch_size; ++i) {
+            int maxIdx;
+            probs_test.row(i).maxCoeff(&maxIdx);
+            predictions_test(i) = maxIdx;
+        }
+
+        for (int i = 0; i < current_batch_size; ++i) {
+            if (predictions_test(i) == static_cast<int>(labels_test[i])) {
+                correct_test++;
+            }
+        }
+
+
+    }
+
+    std::cout << ", Test Accuracy = " << std::setprecision(2)
+                             << (static_cast<float>(correct_test) / test_dataset.get_length()) * 100 << "%" << std::endl;
 
     return 0;
 }
