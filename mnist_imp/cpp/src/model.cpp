@@ -62,7 +62,8 @@ MLP::MLP(std::vector<std::shared_ptr<LinearLayer>> layers) : layers(std::move(la
 
 Eigen::ArrayXXf MLP::forward(const Eigen::ArrayXXf& X,
                         const std::function<Eigen::ArrayXXf(const Eigen::ArrayXXf&)>& activation,
-                        const std::function<Eigen::ArrayXXf(const Eigen::ArrayXXf&)>& final_activation)
+                        const std::function<Eigen::ArrayXXf(const Eigen::ArrayXXf&)>& final_activation,
+                        float dropout_rate, bool training, bool do_dropout)
 {
     Eigen::ArrayXXf out = X;
     for (int layernum = 0; layernum < n_layers - 1; layernum++)
@@ -70,6 +71,10 @@ Eigen::ArrayXXf MLP::forward(const Eigen::ArrayXXf& X,
         const auto& layer = this->layers[layernum];
         out = layer->forward(out);
         out = activation(out);
+        if (do_dropout)
+        {
+            out = dropout(out, dropout_rate, training);
+        }
         layer->output = out;
     }
     const auto& layerlast = this->layers[n_layers - 1];
@@ -78,6 +83,15 @@ Eigen::ArrayXXf MLP::forward(const Eigen::ArrayXXf& X,
     layerlast->output = out;
     return out;
 
+}
+
+Eigen::ArrayXXf MLP::dropout(const Eigen::ArrayXXf& input, float dropout_rate, bool training)
+{
+    if (!training || dropout_rate <= 0.0f) return input;
+
+    Eigen::ArrayXXf mask = (Eigen::ArrayXXf::Random(input.rows(), input.cols()) + 1.0f) / 2.0f;
+    mask = (mask > dropout_rate).cast<float>();
+    return input * mask / (1.0f - dropout_rate);
 }
 
 void MLP::backward(double train_loss, Eigen::ArrayXXf& probs, Eigen::ArrayXXf one_hot_encoded, int epoch, int batch_num,

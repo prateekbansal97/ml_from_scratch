@@ -104,7 +104,7 @@ int main()
             auto& labels = batch.second;
 
             // forward pass
-            Eigen::ArrayXXf probs_train = model.forward(images_f, ReLu, [](const Eigen::ArrayXXf& x) { return softmax(x, true); });
+            Eigen::ArrayXXf probs_train = model.forward(images_f, ReLu, [](const Eigen::ArrayXXf& x) { return softmax(x, true); }, 0.3f, true, true);
 
             int current_batch_size = images_f.rows();
 
@@ -169,7 +169,8 @@ int main()
             auto& labels_valid = batch_valid.second;
 
             // Forward Pass
-            Eigen::ArrayXXf probs_valid = model.forward(images_valid_f, ReLu, [](const Eigen::ArrayXXf& x) { return softmax(x, true); });
+            Eigen::ArrayXXf probs_valid = model.forward(images_valid_f, ReLu, [](const Eigen::ArrayXXf& x) { return softmax(x, true); }, 0.0f,
+                                                        false, false);
             int current_batch_size = images_valid_f.rows();
 
             double batch_loss = 0.0;
@@ -255,7 +256,8 @@ int main()
         auto& labels_test = batch_test.second;
 
         // Forward Pass
-        Eigen::ArrayXXf probs_test = model.forward(images_test_f, ReLu, [](const Eigen::ArrayXXf& x) { return softmax(x, true); });
+        Eigen::ArrayXXf probs_test = model.forward(images_test_f, ReLu, [](const Eigen::ArrayXXf& x) { return softmax(x, true); },
+                                                   0.0f, false, false);
         int current_batch_size = images_test_f.rows();
 
 

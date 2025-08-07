@@ -69,14 +69,16 @@ public:
 
     Eigen::ArrayXXf forward(const Eigen::ArrayXXf& X,
                             const std::function<Eigen::ArrayXXf(const Eigen::ArrayXXf&)>& activation,
-                            const std::function<Eigen::ArrayXXf(const Eigen::ArrayXXf&)>& final_activation);
+                            const std::function<Eigen::ArrayXXf(const Eigen::ArrayXXf&)>& final_activation,
+                            float dropout_rate, bool training, bool do_dropout = true);
     
     void backward(double train_loss, Eigen::ArrayXXf& probs, Eigen::ArrayXXf one_hot_encoded, int epoch,
                   int batch_num, int total_batches, Eigen::ArrayXXf batch_input, double beta1,
                   double beta2, double alpha, double eps);
     
     std::vector<std::pair<Eigen::ArrayXXf*, Eigen::ArrayXf*>> parameters;
-    
+
+    Eigen::ArrayXXf dropout(const Eigen::ArrayXXf& input, float dropout_rate, bool training);
     void save_parameters(
             const std::vector<std::pair<Eigen::ArrayXXf*, Eigen::ArrayXf*>>& parameters,
             const std::string& filename); // To save model parameters
