@@ -8,6 +8,7 @@ mnist_imp/python/*
 mnist_imp/dataset
 mnist_imp/dataset/*
 mnist_imp/dataset/raw/*
+!mnist_imp/cpp/src/training_metrics.png
 !mnist_imp/python/dataset.py
 !mnist_imp/python/model.py
 !mnist_imp/python/exceptions.py

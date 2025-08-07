@@ -8,10 +8,13 @@
 #include <algorithm>
 #include <iomanip>
 #include <chrono>
+#include <fstream>
 
 #include "dataset.h"
 #include "model.h"
 #include "activation.h"
+
+
 
 int main()
 {
@@ -65,6 +68,8 @@ int main()
     // Tracking Loss
     std::vector<double> train_loss_history;
     std::vector<double> valid_loss_history;
+    std::vector<float> train_acc_history;
+    std::vector<float> valid_acc_history;
 
     // For tracking best model
     double best_val_loss = std::numeric_limits<double>::infinity();
@@ -223,7 +228,24 @@ int main()
                   << ", Validation Accuracy = " << std::setprecision(2)
                   << (static_cast<float>(correct_val) / valid_dataset.get_length()) * 100 << "%" << std::endl;
 
+        train_acc_history.push_back(static_cast<float>(correct_train) / train_dataset.get_length());
+        valid_acc_history.push_back(static_cast<float>(correct_val) / valid_dataset.get_length());
     }
+
+
+    std::ofstream loss_file("loss_history.csv");
+    loss_file << "epoch,train_loss,valid_loss\n";
+    for (int i = 0; i < train_loss_history.size(); ++i) {
+        loss_file << i + 1 << "," << train_loss_history[i] << "," << valid_loss_history[i] << "\n";
+    }
+    loss_file.close();
+
+    std::ofstream acc_file("accuracy_history.csv");
+    acc_file << "epoch,train_acc,valid_acc\n";
+    for (int i = 0; i < train_acc_history.size(); ++i) {
+        acc_file << i + 1 << "," << train_acc_history[i] << "," << valid_acc_history[i] << "\n";
+    }
+    acc_file.close();
 
     int correct_test = 0;
     // Test loop
@@ -255,6 +277,7 @@ int main()
 
     std::cout << ", Test Accuracy = " << std::setprecision(2)
                              << (static_cast<float>(correct_test) / test_dataset.get_length()) * 100 << "%" << std::endl;
+
 
     return 0;
 }
