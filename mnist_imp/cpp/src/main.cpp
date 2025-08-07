@@ -42,9 +42,9 @@ int main()
 
     //MLP layers vector
     std::vector<std::shared_ptr<LinearLayer>> layers = {
-            std::make_shared<LinearLayer>(28 * 28, 128),
-            std::make_shared<LinearLayer>(128, 32),
-            std::make_shared<LinearLayer>(32, 10)
+            std::make_shared<LinearLayer>(28 * 28, 128, true),
+            std::make_shared<LinearLayer>(128, 32, true),
+            std::make_shared<LinearLayer>(32, 10, false)
     };
 
     //Initializing MLP

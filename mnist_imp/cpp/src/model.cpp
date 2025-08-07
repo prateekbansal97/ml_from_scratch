@@ -8,28 +8,105 @@
 #include <cmath>
 #include <fstream>
 
-LinearLayer::LinearLayer(int d_inp, int d_out) : d_inp(d_inp), d_out(d_out)
-{
-    weights = Eigen::ArrayXXf::Random(d_inp, d_out) * std::sqrt(2.0f / d_inp); // He initialization
-    biases = Eigen::ArrayXf::Random(d_out);
-    
-    // Useful during backpropogation, tracks position of layer in the network
-    first = false;
-    intermediate = false;
-    last = false;
-    
-    // Adam Optimizer's momentum and velocities for updating model weights and biases
-    mom_weights = Eigen::ArrayXXf::Zero(d_inp, d_out);
-    mom_biases = Eigen::ArrayXf::Zero(d_out);
-    
-    vel_weights = Eigen::ArrayXXf::Zero(d_inp, d_out);
-    vel_biases  = Eigen::ArrayXf::Zero(d_out);
+BatchNorm::BatchNorm(int dim) : dim(dim) {
+    gamma = Eigen::ArrayXf::Ones(dim);
+    beta = Eigen::ArrayXf::Zero(dim);
+    running_mean = Eigen::ArrayXf::Zero(dim);
+    running_var = Eigen::ArrayXf::Ones(dim);
 }
 
-Eigen::ArrayXXf LinearLayer::forward(Eigen::ArrayXXf &input) {
-    // Linear transformation, y  = Ax + b;
-    Eigen::ArrayXXf output_layer = (input.matrix() * this->weights.matrix()).array().rowwise() + this->biases.transpose();
-    return output_layer;
+Eigen::ArrayXXf BatchNorm::forward(const Eigen::ArrayXXf& input, bool training) {
+    const int N = input.rows();
+
+    if (training) {
+        Eigen::ArrayXf batch_mean = input.colwise().mean();                    // (D)
+        input_centered = input.rowwise() - batch_mean.transpose();             // (N,D)
+
+        Eigen::ArrayXf batch_var =
+                (input_centered.square().colwise().sum() / static_cast<float>(N)); // (D)
+
+        // Update running stats
+        running_mean = momentum * batch_mean + (1 - momentum) * running_mean;
+        running_var  = momentum * batch_var  + (1 - momentum) * running_var;
+
+        std_inv = (batch_var + eps).sqrt().inverse();                          // (D)
+
+        // x_hat = centered * std_inv
+        Eigen::ArrayXXf std_inv_row = std_inv.transpose().replicate(N, 1);     // (N,D)
+        x_hat = input_centered * std_inv_row;                                  // (N,D)
+
+        // y = gamma * x_hat + beta
+        Eigen::ArrayXXf gamma_row = gamma.transpose().replicate(N, 1);         // (N,D)
+        Eigen::ArrayXXf beta_row  = beta.transpose().replicate(N, 1);          // (N,D)
+        return gamma_row * x_hat + beta_row;
+    } else {
+        Eigen::ArrayXXf centered =
+                input.rowwise() - running_mean.transpose();                        // (N,D)
+        Eigen::ArrayXXf inv_std_row =
+                (running_var + eps).sqrt().inverse().transpose().replicate(N, 1);  // (N,D)
+        Eigen::ArrayXXf xhat_infer = centered * inv_std_row;                   // (N,D)
+        Eigen::ArrayXXf gamma_row  = gamma.transpose().replicate(N, 1);        // (N,D)
+        Eigen::ArrayXXf beta_row   = beta.transpose().replicate(N, 1);         // (N,D)
+        return gamma_row * xhat_infer + beta_row;
+    }
+}
+
+
+
+Eigen::ArrayXXf BatchNorm::backward(const Eigen::ArrayXXf& grad_output) {
+    const int N = grad_output.rows();
+
+    // d_beta and d_gamma (vectors of length D)
+    dbeta  = grad_output.colwise().sum();                 // (D)
+    dgamma = (grad_output * x_hat).colwise().sum();       // (D)
+
+    // scale = gamma * std_inv
+    Eigen::ArrayXf scale = gamma * std_inv;               // (D)
+
+    // Sums over batch
+    Eigen::ArrayXf sum_dy      = grad_output.colwise().sum();           // (D)
+    Eigen::ArrayXf sum_dy_xhat = (grad_output * x_hat).colwise().sum(); // (D)
+
+    // Broadcast to (N,D)
+    Eigen::ArrayXXf scale_row      = scale.transpose().replicate(N, 1);        // (N,D)
+    Eigen::ArrayXXf sum_dy_row     = sum_dy.transpose().replicate(N, 1);       // (N,D)
+    Eigen::ArrayXXf sum_dy_xhat_row= sum_dy_xhat.transpose().replicate(N, 1);  // (N,D)
+
+    // dx = (1/N) * scale * (N*dy - sum(dy) - x_hat * sum(dy * x_hat))
+    Eigen::ArrayXXf dx = (grad_output * static_cast<float>(N)
+                          - sum_dy_row
+                          - x_hat * sum_dy_xhat_row);
+
+    dx = (dx * scale_row) / static_cast<float>(N); // (N,D)
+
+    return dx;
+}
+
+
+
+LinearLayer::LinearLayer(int d_inp, int d_out, bool use_bn)
+        : d_inp(d_inp), d_out(d_out), use_batchnorm(use_bn) {
+
+    weights = Eigen::ArrayXXf::Random(d_inp, d_out) * std::sqrt(2.0f / d_inp);
+    biases = Eigen::ArrayXf::Random(d_out);
+
+    mom_weights = Eigen::ArrayXXf::Zero(d_inp, d_out);
+    mom_biases = Eigen::ArrayXf::Zero(d_out);
+    vel_weights = Eigen::ArrayXXf::Zero(d_inp, d_out);
+    vel_biases  = Eigen::ArrayXf::Zero(d_out);
+
+    if (use_batchnorm) {
+        batchnorm = std::make_shared<BatchNorm>(d_out);
+    }
+}
+
+
+Eigen::ArrayXXf LinearLayer::forward(Eigen::ArrayXXf& input, bool training) {
+    Eigen::ArrayXXf out = (input.matrix() * weights.matrix()).array().rowwise() + biases.transpose();
+    if (use_batchnorm && batchnorm) {
+        out = batchnorm->forward(out, training);
+    }
+    return out;
 }
 
 Eigen::ArrayXXf LinearLayer::generate_dropout_mask(int rows, int cols, float dropout_rate)
@@ -75,7 +152,7 @@ Eigen::ArrayXXf MLP::forward(const Eigen::ArrayXXf& X,
     for (int layernum = 0; layernum < n_layers - 1; layernum++)
     {
         const auto& layer = this->layers[layernum];
-        out = layer->forward(out);
+        out = layer->forward(out, training);
         out = activation(out);
         if (do_dropout && training && dropout_rate > 0.0f)
         {
@@ -85,7 +162,7 @@ Eigen::ArrayXXf MLP::forward(const Eigen::ArrayXXf& X,
         layer->output = out;
     }
     const auto& layerlast = this->layers[n_layers - 1];
-    out = layerlast->forward(out);
+    out = layerlast->forward(out, training);
     out = final_activation(out);
     layerlast->output = out;
     return out;
@@ -131,6 +208,17 @@ void MLP::backward(double train_loss, Eigen::ArrayXXf& probs, Eigen::ArrayXXf on
 
         layer->del_bias = del_bias;
 
+
+        if (layer->use_batchnorm && layer->batchnorm) {
+            // First: apply ReLU mask already present in your code (done before this line)
+            // Then backprop through BN
+            del_bias = layer->batchnorm->backward(del_bias);
+
+            // Simple SGD update for BN params (matches your alpha learning rate)
+            layer->batchnorm->gamma -= alpha * layer->batchnorm->dgamma;
+            layer->batchnorm->beta  -= alpha * layer->batchnorm->dbeta;
+        }
+
         Eigen::ArrayXXf del_l_del_final;
         if (!layer->first)
         {
@@ -155,11 +243,14 @@ void MLP::backward(double train_loss, Eigen::ArrayXXf& probs, Eigen::ArrayXXf on
 
         layer->weights = layer->weights - alpha*((mom_cap_weights)/(vel_cap_weights.sqrt() + eps));
 
-        layer->mom_biases = layer->mom_biases*beta1 + (1 - beta1)*del_bias.sum();
+        Eigen::ArrayXf grad_b = del_bias.colwise().sum();                 // (D)
+        layer->mom_biases = layer->mom_biases*beta1 + (1 - beta1)*grad_b; // (D)
         Eigen::ArrayXf mom_cap_bias = layer->mom_biases/(1 - std::pow(beta1, t));
 
-        layer->vel_biases = layer->vel_biases*beta2 + (1 - beta2)*(del_bias*del_bias).sum();
+        Eigen::ArrayXf grad_b2 = (del_bias.square()).colwise().sum();     // (D)
+        layer->vel_biases = layer->vel_biases*beta2 + (1 - beta2)*grad_b2;
         Eigen::ArrayXf vel_cap_bias = layer->vel_biases/(1 - std::pow(beta2, t));
+
 
         layer->biases = layer->biases - alpha*(mom_cap_bias)/(vel_cap_bias.sqrt() + eps);
 

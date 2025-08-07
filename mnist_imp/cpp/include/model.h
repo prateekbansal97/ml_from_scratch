@@ -8,6 +8,38 @@
 #include "Eigen/Dense"
 #include <memory>
 
+class BatchNorm {
+public:
+    BatchNorm(int dim);
+
+    Eigen::ArrayXXf forward(const Eigen::ArrayXXf& input, bool training);
+    Eigen::ArrayXXf backward(const Eigen::ArrayXXf& grad_output);
+    
+    // Parameters
+    Eigen::ArrayXf gamma;
+    Eigen::ArrayXf beta;
+
+    // Running stats (used in inference)
+    Eigen::ArrayXf running_mean;
+    Eigen::ArrayXf running_var;
+
+    // Saved for backward
+    Eigen::ArrayXXf input_centered;
+    Eigen::ArrayXf std_inv;
+    Eigen::ArrayXXf x_hat;
+
+    // Gradients
+    Eigen::ArrayXf dgamma;
+    Eigen::ArrayXf dbeta;
+
+    float momentum = 0.1;
+    float eps = 1e-5;
+
+private:
+    int dim;
+};
+
+
 class LinearLayer
 {
 
@@ -23,11 +55,14 @@ class LinearLayer
 
 
 public:
-    LinearLayer(int d_inp, int d_out);
+    LinearLayer(int d_inp, int d_out, bool use_bn = false);
 
-    Eigen::ArrayXXf forward(Eigen::ArrayXXf& input);
+    Eigen::ArrayXXf forward(Eigen::ArrayXXf& input, bool training);
 
     virtual ~LinearLayer() = default;
+
+    std::shared_ptr<BatchNorm> batchnorm;
+    bool use_batchnorm = false;
 
 private:
     friend class MLP;
