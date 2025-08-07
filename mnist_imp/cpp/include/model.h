@@ -36,12 +36,13 @@ private:
 //    self.weights = np.random.randn(self.d_inp, self.d_out) * np.sqrt(2 / self.d_inp)
     Eigen::ArrayXXf weights;
     Eigen::ArrayXf biases;
-
+    Eigen::ArrayXf dropout_mask;
 
     Eigen::ArrayXXf mom_weights;
     Eigen::ArrayXf mom_biases;
     Eigen::ArrayXXf vel_weights;
     Eigen::ArrayXf vel_biases;
+    Eigen::ArrayXXf generate_dropout_mask(int rows, int cols, float dropout_rate);
 
 //    std::shared_ptr<Eigen::ArrayXXf> output;
 //    std::shared_ptr<Eigen::ArrayXXf> del_bias;

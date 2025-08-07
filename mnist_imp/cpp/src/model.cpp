@@ -32,6 +32,12 @@ Eigen::ArrayXXf LinearLayer::forward(Eigen::ArrayXXf &input) {
     return output_layer;
 }
 
+Eigen::ArrayXXf LinearLayer::generate_dropout_mask(int rows, int cols, float dropout_rate)
+{
+    Eigen::ArrayXXf random = (Eigen::ArrayXXf::Random(rows, cols) + 1.0f) / 2.0f; // [0,1]
+    return (random > dropout_rate).cast<float>();
+}
+
 MLP::MLP(std::vector<std::shared_ptr<LinearLayer>> layers) : layers(std::move(layers)) {
 
     int layernum = 0;
@@ -71,9 +77,10 @@ Eigen::ArrayXXf MLP::forward(const Eigen::ArrayXXf& X,
         const auto& layer = this->layers[layernum];
         out = layer->forward(out);
         out = activation(out);
-        if (do_dropout)
+        if (do_dropout && training && dropout_rate > 0.0f)
         {
-            out = dropout(out, dropout_rate, training);
+            layer->dropout_mask = layer->generate_dropout_mask(out.rows(), out.cols(), dropout_rate);
+            out = out * layer->dropout_mask / (1.0f - dropout_rate);
         }
         layer->output = out;
     }
@@ -83,15 +90,6 @@ Eigen::ArrayXXf MLP::forward(const Eigen::ArrayXXf& X,
     layerlast->output = out;
     return out;
 
-}
-
-Eigen::ArrayXXf MLP::dropout(const Eigen::ArrayXXf& input, float dropout_rate, bool training)
-{
-    if (!training || dropout_rate <= 0.0f) return input;
-
-    Eigen::ArrayXXf mask = (Eigen::ArrayXXf::Random(input.rows(), input.cols()) + 1.0f) / 2.0f;
-    mask = (mask > dropout_rate).cast<float>();
-    return input * mask / (1.0f - dropout_rate);
 }
 
 void MLP::backward(double train_loss, Eigen::ArrayXXf& probs, Eigen::ArrayXXf one_hot_encoded, int epoch, int batch_num,
@@ -123,6 +121,12 @@ void MLP::backward(double train_loss, Eigen::ArrayXXf& probs, Eigen::ArrayXXf on
             prev_layer_weights = original_weights[original_index + 1];
             del_bias = this->layers[original_index + 1]->del_bias.matrix() * prev_layer_weights.matrix().transpose();
             del_bias = (this->layers[original_index]->output == 0).select(0, del_bias);
+        }
+
+
+        if (layer->dropout_mask.size() > 0)
+        {
+            del_bias *= layer->dropout_mask;
         }
 
         layer->del_bias = del_bias;
