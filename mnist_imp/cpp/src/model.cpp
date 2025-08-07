@@ -90,12 +90,16 @@ LinearLayer::LinearLayer(int d_inp, int d_out, bool use_bn)
     weights = Eigen::ArrayXXf::Random(d_inp, d_out) * std::sqrt(2.0f / d_inp);
     biases = Eigen::ArrayXf::Random(d_out);
 
+    if (use_batchnorm)
+        biases.setZero();
+
     mom_weights = Eigen::ArrayXXf::Zero(d_inp, d_out);
     mom_biases = Eigen::ArrayXf::Zero(d_out);
     vel_weights = Eigen::ArrayXXf::Zero(d_inp, d_out);
     vel_biases  = Eigen::ArrayXf::Zero(d_out);
 
     if (use_batchnorm) {
+
         batchnorm = std::make_shared<BatchNorm>(d_out);
     }
 }
@@ -158,6 +162,10 @@ Eigen::ArrayXXf MLP::forward(const Eigen::ArrayXXf& X,
         {
             layer->dropout_mask = layer->generate_dropout_mask(out.rows(), out.cols(), dropout_rate);
             out = out * layer->dropout_mask / (1.0f - dropout_rate);
+        }
+        else
+        {
+            layer->dropout_mask.resize(0,0);
         }
         layer->output = out;
     }
