@@ -1,22 +1,24 @@
-# Ignore everything in mnist_imp/python/
+# Ignore everything in MNIST_MLP/python/
 
 
+
+CNN_CIFAR10/dataset
 
 
 prettyprint.bash
-mnist_imp/python/*
-mnist_imp/dataset
-mnist_imp/dataset/*
-mnist_imp/dataset/raw/*
-!mnist_imp/cpp/src/training_metrics.png
-!mnist_imp/python/dataset.py
-!mnist_imp/python/model.py
-!mnist_imp/python/exceptions.py
-!mnist_imp/python/train.py
-!mnist_imp/python/Loss_vs_epoch.png
-!mnist_imp/python/activation.py
+MNIST_MLP/python/*
+MNIST_MLP/dataset
+MNIST_MLP/dataset/*
+MNIST_MLP/dataset/raw/*
+!MNIST_MLP/cpp/src/training_metrics.png
+!MNIST_MLP/python/dataset.py
+!MNIST_MLP/python/model.py
+!MNIST_MLP/python/exceptions.py
+!MNIST_MLP/python/train.py
+!MNIST_MLP/python/Loss_vs_epoch.png
+!MNIST_MLP/python/activation.py
 # Ignore raw dataset files
-mnist_imp/dataset/
+MNIST_MLP/dataset/
 
 # Ignore everything in AlexNet
 AlexNet/
