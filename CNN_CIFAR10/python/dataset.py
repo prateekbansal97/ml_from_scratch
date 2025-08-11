@@ -63,7 +63,7 @@ class DataLoader:
         findex = idx*self.batch_size
         lindex = min(findex + self.batch_size, len(self.dataset))
         local_batch_size = lindex - findex
-        feature_batch = self.dataset.features[self.indices[findex:lindex]].reshape(local_batch_size, -1)
+        feature_batch = self.dataset.features[self.indices[findex:lindex]]#.reshape(local_batch_size, -1)
         labels_batch = self.dataset.labels[self.indices[findex:lindex]]
         return feature_batch, labels_batch
 
